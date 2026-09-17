@@ -1,167 +1,270 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Clock, ArrowUpCircle, User, FileText, Mic, Mail } from 'lucide-react';
-import { actionItems, type ActionStatus, type ActionPriority } from '../engine/actionItems';
-
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
-const fadeUp = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
+import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  ShieldCheck
+} from 'lucide-react';
+import { api, type CommitmentDto } from '../services/api';
 
 export default function ActionItems() {
-  const [statusFilter, setStatusFilter] = useState<ActionStatus | 'all'>('all');
-  const [priorityFilter, setPriorityFilter] = useState<ActionPriority | 'all'>('all');
+  const [commitments, setCommitments] = useState<CommitmentDto[]>([]);
+  const [filterOwner, setFilterOwner] = useState<'all' | 'arjun' | 'team'>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'overdue' | 'at-risk' | 'completed'>('all');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const filtered = actionItems.filter(item => {
-    if (statusFilter !== 'all' && item.status !== statusFilter) return false;
-    if (priorityFilter !== 'all' && item.priority !== priorityFilter) return false;
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const data = await api.getCommitments();
+      setCommitments(data);
+    } catch (e) {
+      console.error('Failed to load commitments:', e);
+    }
+  };
+
+  const filtered = commitments.filter((item) => {
+    // Owner filter
+    if (filterOwner === 'arjun' && item.owner?.name !== 'Arjun Malhotra') return false;
+    if (filterOwner === 'team' && item.owner?.name === 'Arjun Malhotra') return false;
+
+    // Status filter
+    if (filterStatus === 'open' && (item.status === 'COMPLETED' || item.status === 'RESOLVED')) return false;
+    if (filterStatus === 'overdue' && item.status !== 'OVERDUE') return false;
+    if (filterStatus === 'at-risk' && item.status !== 'AT_RISK') return false;
+    if (filterStatus === 'completed' && item.status !== 'COMPLETED' && item.status !== 'RESOLVED') return false;
+
     return true;
   });
 
-  const statusIcon = (status: ActionStatus) => {
-    switch (status) {
-      case 'completed': return <CheckCircle2 className="w-5 h-5 text-[var(--color-green)]" />;
-      case 'overdue': return <AlertCircle className="w-5 h-5 text-[var(--color-red)]" />;
-      case 'at-risk': return <ArrowUpCircle className="w-5 h-5 text-[var(--color-amber)]" />;
-      default: return <Clock className="w-5 h-5 text-[var(--color-text-3)]" />;
-    }
-  };
-
-  const statusConfig: Record<ActionStatus, { text: string; dot: string; pill: string }> = {
-    'pending': { text: 'Pending', dot: 'glow-dot-amber', pill: 'bg-[var(--color-amber-glow)] text-[var(--color-amber)]' },
-    'in-progress': { text: 'In Progress', dot: 'glow-dot-blue', pill: 'bg-[var(--color-blue-glow)] text-[var(--color-blue)]' },
-    'completed': { text: 'Done', dot: 'glow-dot-green', pill: 'bg-[var(--color-green-glow)] text-[var(--color-green)]' },
-    'overdue': { text: 'Overdue', dot: 'glow-dot-red', pill: 'bg-[var(--color-red-glow)] text-[var(--color-red)]' },
-    'at-risk': { text: 'At Risk', dot: 'glow-dot-red', pill: 'bg-[var(--color-red-glow)] text-[var(--color-red)]' },
-  };
-
-  const priorityConfig: Record<ActionPriority, { text: string; dot: string; pill: string }> = {
-    'critical': { text: 'CRITICAL', dot: 'glow-dot-red', pill: 'bg-[var(--color-red)] text-white' },
-    'high': { text: 'HIGH', dot: 'glow-dot-amber', pill: 'bg-[var(--color-amber)] text-black' },
-    'medium': { text: 'MEDIUM', dot: 'glow-dot-blue', pill: 'bg-[var(--color-blue-glow)] text-[var(--color-blue)]' },
-    'low': { text: 'LOW', dot: 'glow-dot-brand', pill: 'bg-[var(--color-surface-4)] text-[var(--color-text-2)]' },
-  };
-
-  const sourceIcon = (source: string) => {
-    switch (source) {
-      case 'meeting': return <FileText className="w-3 h-3" />;
-      case 'email': return <Mail className="w-3 h-3" />;
-      case 'voice-note': return <Mic className="w-3 h-3" />;
-      default: return null;
-    }
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
   const counts = {
-    all: actionItems.length,
-    critical: actionItems.filter(a => a.priority === 'critical').length,
-    pending: actionItems.filter(a => a.status !== 'completed').length,
-    completed: actionItems.filter(a => a.status === 'completed').length,
+    all: commitments.length,
+    arjun: commitments.filter((c) => c.owner?.name === 'Arjun Malhotra').length,
+    overdue: commitments.filter((c) => c.status === 'OVERDUE').length,
+    atRisk: commitments.filter((c) => c.status === 'AT_RISK').length,
+    completed: commitments.filter((c) => c.status === 'COMPLETED' || c.status === 'RESOLVED').length,
   };
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* 1. Summary Metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Total Items', value: counts.all, gradient: 'from-[var(--color-brand)]/10 to-transparent', color: 'text-[var(--color-brand-light)]' },
-          { label: 'Critical', value: counts.critical, gradient: 'from-[var(--color-red)]/10 to-transparent', color: 'text-[var(--color-red)]' },
-          { label: 'Open', value: counts.pending, gradient: 'from-[var(--color-amber)]/10 to-transparent', color: 'text-[var(--color-amber)]' },
-          { label: 'Completed', value: counts.completed, gradient: 'from-[var(--color-green)]/10 to-transparent', color: 'text-[var(--color-green)]' },
-        ].map(stat => (
-          <div key={stat.label} className={`card bg-gradient-to-br ${stat.gradient} p-5 text-center`}>
-            <p className={`text-3xl font-extrabold ${stat.color}`}>{stat.value}</p>
-            <p className="text-[11px] font-medium text-[var(--color-text-3)] mt-1 uppercase tracking-wide">{stat.label}</p>
+          { label: 'Total Tracked', value: counts.all, color: 'text-white', border: 'border-[var(--color-border-primary)]' },
+          { label: "Arjun's Commitments", value: counts.arjun, color: 'text-[var(--color-brand-light)]', border: 'border-[var(--color-brand)]/30' },
+          { label: 'Overdue Delays', value: counts.overdue, color: 'text-red-400', border: 'border-red-500/30' },
+          { label: 'Unassigned Risks', value: counts.atRisk, color: 'text-amber-400', border: 'border-amber-500/30' },
+          { label: 'Resolved / Done', value: counts.completed, color: 'text-emerald-400', border: 'border-emerald-500/30' },
+        ].map((stat) => (
+          <div
+            key={stat.label}
+            className={`p-4 rounded-xl bg-[var(--color-surface-1)] border ${stat.border} shadow-sm text-center`}
+          >
+            <p className={`text-2xl font-black ${stat.color}`}>{stat.value}</p>
+            <p className="text-[11px] font-semibold text-[var(--color-text-3)] mt-1 uppercase tracking-wider">
+              {stat.label}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 p-1 bg-[var(--color-surface-2)] rounded-xl border border-[var(--color-border-primary)]">
-          {(['all', 'pending', 'at-risk', 'overdue', 'completed'] as const).map(s => (
+      {/* 2. Controls & Filter Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border-primary)]">
+        {/* Owner Segment */}
+        <div className="flex items-center gap-1 bg-[var(--color-surface-2)] p-1 rounded-xl border border-[var(--color-border-primary)]">
+          {[
+            { id: 'all', label: 'All Items' },
+            { id: 'arjun', label: "Arjun's Own" },
+            { id: 'team', label: 'Team Items' },
+          ].map((tab) => (
             <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
-                statusFilter === s
-                  ? 'bg-[var(--color-brand)] text-white shadow-lg shadow-[var(--color-brand)]/20'
-                  : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-hover)]'
+              key={tab.id}
+              onClick={() => setFilterOwner(tab.id as any)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                filterOwner === tab.id
+                  ? 'bg-gradient-to-r from-[var(--color-brand)] to-purple-600 text-white shadow-sm'
+                  : 'text-[var(--color-text-2)] hover:text-white'
               }`}
             >
-              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}
+              {tab.label}
             </button>
           ))}
         </div>
-        <div className="flex gap-1 p-1 bg-[var(--color-surface-2)] rounded-xl border border-[var(--color-border-primary)]">
-          {(['all', 'critical', 'high', 'medium'] as const).map(p => (
+
+        {/* Status Pills */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'open', label: 'Open' },
+            { id: 'overdue', label: 'Overdue' },
+            { id: 'at-risk', label: 'At Risk' },
+            { id: 'completed', label: 'Completed' },
+          ].map((tab) => (
             <button
-              key={p}
-              onClick={() => setPriorityFilter(p)}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
-                priorityFilter === p
-                  ? 'bg-[var(--color-brand)] text-white shadow-lg shadow-[var(--color-brand)]/20'
-                  : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-hover)]'
+              key={tab.id}
+              onClick={() => setFilterStatus(tab.id as any)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                filterStatus === tab.id
+                  ? 'bg-[var(--color-surface-3)] text-white border border-[var(--color-border-active)]'
+                  : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)]'
               }`}
             >
-              {p === 'all' ? 'All Priority' : p.charAt(0).toUpperCase() + p.slice(1)}
+              {tab.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Cards */}
-      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
-        {filtered.map(item => {
-          const sc = statusConfig[item.status];
-          const pc = priorityConfig[item.priority];
+      {/* 3. Deliverables List */}
+      <div className="space-y-4">
+        {filtered.map((item) => {
+          const isExpanded = expandedId === item.id;
+          const isArjunOwner = item.owner?.name === 'Arjun Malhotra';
+          const isUnassigned = !item.owner;
+
           return (
-            <motion.div
+            <div
               key={item.id}
-              variants={fadeUp}
-              className="card card-glow p-5"
+              className={`rounded-2xl border transition-all overflow-hidden ${
+                item.status === 'OVERDUE'
+                  ? 'bg-[var(--color-surface-1)] border-red-500/30'
+                  : item.status === 'AT_RISK'
+                  ? 'bg-[var(--color-surface-1)] border-amber-500/30'
+                  : item.status === 'RESOLVED' || item.status === 'COMPLETED'
+                  ? 'bg-[var(--color-surface-1)] border-emerald-500/20 opacity-90'
+                  : 'bg-[var(--color-surface-1)] border-[var(--color-border-primary)] hover:border-[var(--color-border-active)]'
+              }`}
             >
-              <div className="flex items-start gap-4">
-                <div className="mt-0.5">{statusIcon(item.status)}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <h3 className="text-[14px] font-bold text-[var(--color-text-0)]">{item.title}</h3>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`pill ${pc.pill}`}>
-                        {item.priority !== 'low' && <span className={`glow-dot ${pc.dot}`} />}
-                        {pc.text}
+              <div className="p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <div className="space-y-1.5 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-white">{item.title}</h3>
+                      <span
+                        className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                          item.status === 'OVERDUE'
+                            ? 'bg-red-500/15 border-red-500/30 text-red-400'
+                            : item.status === 'AT_RISK'
+                            ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                            : item.status === 'RESOLVED' || item.status === 'COMPLETED'
+                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                            : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                        }`}
+                      >
+                        {item.status}
                       </span>
-                      <span className={`pill ${sc.pill}`}>
-                        <span className={`glow-dot ${sc.dot}`} />
-                        {sc.text}
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--color-surface-3)] text-[var(--color-text-2)] border border-[var(--color-border-primary)]">
+                        {item.category}
                       </span>
+                      {item.delayCount > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-950/60 text-red-300 border border-red-500/40">
+                          Delayed {item.delayCount}x
+                        </span>
+                      )}
                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 mt-2.5 text-[12px] text-[var(--color-text-3)]">
-                    <span className="flex items-center gap-1.5">
-                      <User className="w-3 h-3" /> {item.owner}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="w-3 h-3" /> {item.deadlineLabel}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      {sourceIcon(item.source)} {item.source}
-                    </span>
+
+                    <p className="text-xs sm:text-sm text-[var(--color-text-2)] leading-relaxed">
+                      {item.description}
+                    </p>
                   </div>
 
-                  <div className="mt-3 p-3.5 rounded-xl bg-[var(--color-surface-3)] border border-[var(--color-border-primary)]">
-                    <p className="text-[10px] font-bold text-[var(--color-text-3)] uppercase tracking-wider mb-1.5">Source Trail</p>
-                    <p className="text-[12px] text-[var(--color-text-1)] leading-relaxed">{item.sourceDetail}</p>
-                  </div>
-
-                  <div className="mt-2 p-3.5 rounded-xl bg-[var(--color-surface-3)] border border-[var(--color-border-primary)]">
-                    <p className="text-[10px] font-bold text-[var(--color-text-3)] uppercase tracking-wider mb-1.5">Current Status</p>
-                    <p className="text-[12px] text-[var(--color-text-1)] leading-relaxed">{item.notes}</p>
+                  {/* Owner Badge */}
+                  <div className="shrink-0 flex items-center sm:flex-col sm:items-end gap-1.5 text-right">
+                    <span className="text-[10px] uppercase font-bold text-[var(--color-text-3)]">
+                      Owner
+                    </span>
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                        isArjunOwner
+                          ? 'bg-[var(--color-brand)]/15 border-[var(--color-brand)]/40 text-[var(--color-brand-light)]'
+                          : isUnassigned
+                          ? 'bg-red-500/15 border-red-500/40 text-red-400 font-extrabold animate-pulse'
+                          : 'bg-[var(--color-surface-3)] border-[var(--color-border-primary)] text-[var(--color-text-1)]'
+                      }`}
+                    >
+                      {isArjunOwner ? 'Arjun Malhotra (You)' : isUnassigned ? 'UNASSIGNED (Risk)' : item.owner?.name}
+                    </span>
                   </div>
                 </div>
+
+                {/* Meta details strip */}
+                <div className="mt-4 pt-4 border-t border-[var(--color-border-primary)] flex flex-wrap items-center justify-between gap-3 text-xs text-[var(--color-text-2)]">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <span>
+                      <strong className="text-[var(--color-text-1)]">Deadline:</strong>{' '}
+                      {item.currentDeadline}
+                    </span>
+                    {item.counterparty && (
+                      <span>
+                        <strong className="text-[var(--color-text-1)]">Recipient:</strong>{' '}
+                        {item.counterparty.name}
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => toggleExpand(item.id)}
+                    className="flex items-center gap-1 text-[var(--color-brand-light)] hover:text-white font-medium transition-colors"
+                  >
+                    <span>{isExpanded ? 'Hide Evidence' : 'Show Source & Evidence'}</span>
+                    {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                {/* Expandable Evidence Drawer */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 pt-4 border-t border-[var(--color-border-primary)] space-y-3 overflow-hidden text-xs"
+                    >
+                      <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border-primary)]">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-3)] mb-1">
+                          Why It Matters
+                        </p>
+                        <p className="text-[var(--color-text-1)]">{item.whyItMatters}</p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border-primary)]">
+                        <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-3)] mb-1 flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-purple-400" />
+                          Source Ground Truth & Exact Quote
+                        </p>
+                        <p className="text-[var(--color-text-0)] font-medium mb-1">
+                          Document: <span className="text-[var(--color-brand-light)]">{item.sourceDocument}</span>
+                        </p>
+                        <p className="italic text-[var(--color-text-2)] bg-[var(--color-surface-3)] p-2.5 rounded-lg border border-[var(--color-border-primary)]">
+                          "{item.sourceQuote}"
+                        </p>
+                      </div>
+
+                      {item.resolutionNotes && (
+                        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-1 flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Resolution / Current Progress
+                          </p>
+                          <p>{item.resolutionNotes}</p>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </motion.div>
+            </div>
           );
         })}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,141 +1,183 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, CheckCircle2, AlertTriangle, AlertCircle, Clock, ArrowRight } from 'lucide-react';
-import { emailThreadSummaries } from '../engine/emailSummary';
-import { emailThreads } from '../data/emails';
-import { getPersonName } from '../data/people';
-
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const fadeUp = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
+import {
+  Mail,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  AlertTriangle,
+  CheckCircle2
+} from 'lucide-react';
+import { api, type EmailThreadDto } from '../services/api';
 
 export default function EmailThreads() {
-  const [expandedThread, setExpandedThread] = useState<string | null>(null);
+  const [threads, setThreads] = useState<EmailThreadDto[]>([]);
+  const [expandedId, setExpandedId] = useState<number | null>(1); // Default open Vendor List thread
 
-  const statusStyles: Record<string, { icon: typeof CheckCircle2; color: string; glow: string; dot: string; pillBg: string }> = {
-    'resolved': { icon: CheckCircle2, color: 'text-[var(--color-green)]', glow: 'var(--color-green-glow)', dot: 'glow-dot-green', pillBg: 'bg-[var(--color-green-glow)] text-[var(--color-green)]' },
-    'pending': { icon: Clock, color: 'text-[var(--color-amber)]', glow: 'var(--color-amber-glow)', dot: 'glow-dot-amber', pillBg: 'bg-[var(--color-amber-glow)] text-[var(--color-amber)]' },
-    'at-risk': { icon: AlertTriangle, color: 'text-[var(--color-red)]', glow: 'var(--color-red-glow)', dot: 'glow-dot-red', pillBg: 'bg-[var(--color-red-glow)] text-[var(--color-red)]' },
-    'escalating': { icon: AlertCircle, color: 'text-[var(--color-red)]', glow: 'var(--color-red-glow)', dot: 'glow-dot-red', pillBg: 'bg-[var(--color-red-glow)] text-[var(--color-red)]' },
+  useEffect(() => {
+    loadThreads();
+  }, []);
+
+  const loadThreads = async () => {
+    try {
+      const data = await api.getEmailThreads();
+      setThreads(data);
+    } catch (e) {
+      console.error('Failed to load email threads:', e);
+    }
+  };
+
+  const toggleThread = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  const getStatusBadge = (waitingOn: string) => {
+    if (waitingOn.toLowerCase().includes('arjun') && !waitingOn.toLowerCase().includes('review')) {
+      return (
+        <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-red-500/15 text-red-400 border border-red-500/30 flex items-center gap-1">
+          <Clock className="w-3 h-3" /> Waiting on Arjun
+        </span>
+      );
+    }
+    if (waitingOn.toLowerCase().includes('unassigned')) {
+      return (
+        <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3" /> Unassigned Risk
+        </span>
+      );
+    }
+    if (waitingOn.toLowerCase().includes('review')) {
+      return (
+        <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1">
+          <Clock className="w-3 h-3" /> Arjun Review Pending
+        </span>
+      );
+    }
+    return (
+      <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+        <CheckCircle2 className="w-3 h-3" /> {waitingOn}
+      </span>
+    );
   };
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
-      {emailThreadSummaries.map(summary => {
-        const isExpanded = expandedThread === summary.threadId;
-        const thread = emailThreads.find(t => t.id === summary.threadId);
-        const st = statusStyles[summary.status] || statusStyles['pending'];
-        const StatusIcon = st.icon;
+    <div className="space-y-6">
+      {/* Overview Card */}
+      <div className="p-5 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border-primary)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-base font-bold text-white">Email Intelligence (25 Messages • 5 Threads)</h2>
+          <p className="text-xs text-[var(--color-text-2)] mt-0.5">
+            Cross-referenced communication trails from Raghav, Neha, Divya, Priya, and Facilities.
+          </p>
+        </div>
+        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-2)] border border-[var(--color-border-primary)]">
+          5 Verified Scenarios
+        </span>
+      </div>
 
-        return (
-          <motion.div
-            key={summary.threadId}
-            variants={fadeUp}
-            className="card card-glow overflow-hidden"
-          >
-            <button
-              onClick={() => setExpandedThread(isExpanded ? null : summary.threadId)}
-              className="w-full flex items-start gap-4 p-5 sm:p-6 text-left group"
+      {/* Threads List */}
+      <div className="space-y-4">
+        {threads.map((thread) => {
+          const isExpanded = expandedId === thread.id;
+
+          return (
+            <div
+              key={thread.id}
+              className="rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border-primary)] overflow-hidden transition-all shadow-sm"
             >
-              <div className="p-2.5 rounded-xl shrink-0" style={{ backgroundColor: st.glow }}>
-                <StatusIcon className={`w-5 h-5 ${st.color}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
-                  <span className="text-xl">{summary.icon}</span>
-                  <h3 className="text-[14px] font-bold text-[var(--color-text-0)]">{summary.subject}</h3>
-                  <span className={`pill ${st.pillBg}`}>
-                    <span className={`glow-dot ${st.dot}`} />
-                    {summary.status.toUpperCase()}
-                  </span>
+              {/* Thread Header Banner */}
+              <div
+                onClick={() => toggleThread(thread.id)}
+                className="p-5 sm:p-6 cursor-pointer hover:bg-[var(--color-hover)]/40 transition-colors flex items-start justify-between gap-4"
+              >
+                <div className="space-y-2 flex-1">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border-primary)] text-[var(--color-brand-light)]">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-base font-bold text-white">
+                      {thread.subject}
+                    </h3>
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[var(--color-surface-3)] text-[var(--color-text-2)] border border-[var(--color-border-primary)]">
+                      {thread.category}
+                    </span>
+                    {getStatusBadge(thread.waitingOn)}
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-[var(--color-text-2)] leading-relaxed">
+                    {thread.statusSummary}
+                  </p>
                 </div>
-                <p className="text-[13px] text-[var(--color-text-1)] leading-relaxed">
-                  {summary.latestStatus}
-                </p>
-                <p className="text-[11px] text-[var(--color-text-3)] mt-2">
-                  <span className="font-semibold">Waiting on:</span> {summary.waitingOn}
-                </p>
+
+                <button className="p-2 text-[var(--color-text-3)] hover:text-white shrink-0">
+                  {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </button>
               </div>
-              <div className={`shrink-0 text-[var(--color-text-3)] transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                <ChevronDown className="w-5 h-5" />
-              </div>
-            </button>
 
-            <AnimatePresence>
-              {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="overflow-hidden"
-                >
-                  <div className="px-5 sm:px-6 pb-6 space-y-5 border-t border-[var(--color-border-primary)] pt-5">
-                    {/* Key Points */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-[var(--color-text-3)] uppercase tracking-widest mb-3">Key Points</h4>
-                      <ul className="space-y-2">
-                        {summary.keyPoints.map((point, j) => (
-                          <li key={j} className="flex items-start gap-2.5 text-[13px] text-[var(--color-text-1)]">
-                            <ArrowRight className="w-3.5 h-3.5 mt-1 shrink-0 text-[var(--color-brand-light)]" />
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+              {/* Message Timeline */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="border-t border-[var(--color-border-primary)] p-5 sm:p-6 bg-[var(--color-surface-2)]/30 space-y-4"
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-3)] mb-2">
+                      Full Message Trail ({thread.messages?.length || 0} messages)
+                    </p>
 
-                    {/* Timeline */}
-                    <div>
-                      <h4 className="text-[10px] font-bold text-[var(--color-text-3)] uppercase tracking-widest mb-3">Timeline</h4>
-                      <div className="space-y-0">
-                        {summary.timeline.map((entry, j) => (
-                          <div key={j} className="flex items-start gap-3 group/tl">
-                            <div className="flex flex-col items-center">
-                              <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-brand)] mt-1.5 shadow-sm shadow-[var(--color-brand)]/40" />
-                              {j < summary.timeline.length - 1 && (
-                                <div className="w-px flex-1 bg-[var(--color-surface-4)] min-h-[20px]" />
-                              )}
-                            </div>
-                            <div className="pb-3">
-                              <span className="text-[10px] font-bold text-[var(--color-text-3)]">{entry.date}</span>
-                              <p className="text-[12px] text-[var(--color-text-1)] mt-0.5">{entry.event}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <div className="space-y-3">
+                      {thread.messages?.map((msg, idx) => {
+                        const isFromArjun = msg.sender?.name === 'Arjun Malhotra' || msg.senderRaw?.includes('Arjun');
 
-                    {/* Full Thread */}
-                    {thread && (
-                      <div>
-                        <h4 className="text-[10px] font-bold text-[var(--color-text-3)] uppercase tracking-widest mb-3">
-                          Full Thread — {thread.emails.length} emails
-                        </h4>
-                        <div className="space-y-2">
-                          {thread.emails.map(email => (
-                            <div key={email.id} className="p-4 rounded-xl bg-[var(--color-surface-3)] border border-[var(--color-border-primary)]">
-                              <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-                                <span className="text-[12px] font-bold text-[var(--color-text-0)]">
-                                  {getPersonName(email.from)}
+                        return (
+                          <div
+                            key={msg.id || idx}
+                            className={`p-4 rounded-xl border transition-all ${
+                              isFromArjun
+                                ? 'bg-gradient-to-r from-[var(--color-brand)]/10 to-transparent border-[var(--color-brand)]/30 ml-4 sm:ml-8'
+                                : 'bg-[var(--color-surface-2)] border-[var(--color-border-primary)] mr-4 sm:mr-8'
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-[var(--color-surface-4)] text-[10px] font-bold flex items-center justify-center text-[var(--color-text-2)]">
+                                  {msg.sequenceNumber}
                                 </span>
-                                <span className="text-[10px] text-[var(--color-text-3)] font-medium">
-                                  {email.date} • {email.time}
+                                <span className="text-xs font-bold text-white">
+                                  {msg.sender?.name || msg.senderRaw}
+                                </span>
+                                {isFromArjun && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--color-brand)]/20 text-[var(--color-brand-light)]">
+                                    You
+                                  </span>
+                                )}
+                                <span className="text-[11px] text-[var(--color-text-3)]">
+                                  to {msg.recipient}
                                 </span>
                               </div>
-                              <p className="text-[12px] text-[var(--color-text-1)] leading-relaxed">
-                                {email.body}
-                              </p>
+
+                              <span className="text-[11px] font-semibold text-[var(--color-text-3)]">
+                                {msg.timestamp}
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        );
-      })}
-    </motion.div>
+
+                            <p className="text-xs sm:text-sm text-[var(--color-text-1)] italic leading-relaxed pl-7">
+                              "{msg.body}"
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

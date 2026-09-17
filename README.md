@@ -1,116 +1,172 @@
-# Executive Productivity Agent
+# AI-Powered Executive Productivity Agent — Veridian Corp
 
-An AI-powered executive productivity agent built for **Arjun Malhotra (VP Sales)** at Veridian Corp. This application processes meeting transcripts, calendars, email threads, and voice notes to provide intelligent briefings, action item tracking, conflict detection, and more.
+[![Java](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![React](https://img.shields.io/badge/React-18.3-blue.svg)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue.svg)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-## 🚀 Live Demo
+A production-grade, AI-powered Executive Productivity Agent built for **Arjun Malhotra (VP Sales)** at Veridian Corp.
 
-[**Open the deployed application →**](https://exec-agent-rho.vercel.app)
+Unlike static dashboards or rule-based viewers, this system operates as a **grounded AI executive agent** combining a **Java Spring Boot 3 REST API backend**, **PostgreSQL relational persistence**, and a **React + TypeScript executive cockpit**. It provides natural-language conversational reasoning strictly grounded in the week's meetings, emails, voice notes, and team calendars (Monday 21 September – Friday 25 September 2026), citing exact source evidence for every insight.
 
-## 📋 Features
+---
 
-| Feature | Description |
-|---------|-------------|
-| **Daily Briefing** | Day-by-day executive briefing with agenda, key insights, pending actions, and email updates |
-| **Action Items** | Extracted from meetings, emails, and voice notes — with owner, deadline, status, and source tracking |
-| **Calendar View** | Week-at-a-glance for all 4 team members with color-coded events and conflict highlighting |
-| **Email Intelligence** | Thread-by-thread summaries — latest status, who's waiting on whom, full email trail, and timeline |
-| **Alerts & Risks** | Calendar overlaps, deadline risks, unowned tasks, and missed commitments with recommendations |
-| **Voice Notes** | Arjun's personal voice memos with extracted commitments and concerns |
-| **Smart Scheduler** | Find common free meeting slots across multiple people's calendars |
-| **Search** | Full-text search across all data sources — meetings, emails, voice notes, calendar, and action items |
+## 🚀 Live Production & Repository
 
-## 🧠 Intelligence Engine
+- **Deployed Live Application**: [https://exec-agent-rho.vercel.app](https://exec-agent-rho.vercel.app)
+- **GitHub Repository**: [https://github.com/Deepanshu954/exec-productivity-agent](https://github.com/Deepanshu954/exec-productivity-agent)
 
-The application includes a structured intelligence engine that:
+---
 
-- **Extracts action items** from meeting transcripts, email threads, and voice notes
-- **Cross-references** information across sources (e.g., Neha's deck timeline in meeting → email → calendar)
-- **Detects conflicts** — calendar overlaps, unowned deadlines, repeated delays
-- **Tracks status** — distinguishing between commitments by Arjun vs. by others, pending vs. completed, owned vs. unowned
-- **Generates daily briefings** — context-aware insights for each day of the week
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Framework** | React + TypeScript |
-| **Build Tool** | Vite |
-| **Styling** | Tailwind CSS v4 |
-| **Animations** | Framer Motion |
-| **Icons** | Lucide React |
-| **Deployment** | Vercel |
-
-### Architecture Decision: Why No Backend?
-
-The assignment data is **static and known at build time** (25 emails, 4 calendars, 1 meeting transcript, 2 voice notes). Adding a Spring Boot backend + PostgreSQL database for this fixed dataset would be unnecessary complexity without clear benefit. The intelligence engine runs entirely client-side with a well-structured separation between data, engine, and UI layers.
-
-If this were a **production system with dynamic data**, the architecture would include:
-- Spring Boot REST APIs for data ingestion
-- PostgreSQL for persistent storage
-- Redis for session/cache management
-- WebSocket for real-time updates
-
-## 📁 Project Structure
+## 🏛️ System Architecture
 
 ```
-src/
-├── data/           # Structured assignment data
-│   ├── people.ts       # People & email addresses
-│   ├── calendar.ts     # Calendar events (4 people)
-│   ├── emails.ts       # Email threads (5 threads, 25 emails)
-│   ├── meetings.ts     # Meeting transcript
-│   └── voiceNotes.ts   # Voice note transcripts
-├── engine/         # Intelligence logic
-│   ├── actionItems.ts  # Action item extraction
-│   ├── briefing.ts     # Daily briefing generator
-│   ├── conflicts.ts    # Conflict detection
-│   ├── emailSummary.ts # Thread summarization
-│   ├── scheduler.ts    # Free slot finder
-│   └── search.ts       # Cross-source search
-├── components/     # React UI components
-│   ├── Dashboard.tsx       # Daily briefing view
-│   ├── ActionItems.tsx     # Action item board
-│   ├── CalendarView.tsx    # Weekly calendar
-│   ├── EmailThreads.tsx    # Email intelligence
-│   ├── ConflictAlerts.tsx  # Alerts & risks
-│   ├── VoiceNotes.tsx      # Voice notes display
-│   ├── SchedulerView.tsx   # Smart scheduler
-│   ├── SearchView.tsx      # Search
-│   └── Sidebar.tsx         # Navigation
-├── App.tsx         # Main app shell
-├── main.tsx        # Entry point
-└── index.css       # Global styles
+                                      +---------------------------------------------+
+                                      |         React + TypeScript Frontend         |
+                                      |     (Executive Cockpit & Chat Drawer)       |
+                                      +---------------------------------------------+
+                                                             |
+                                                       REST / JSON
+                                                             v
++-----------------------------------------------------------------------------------------------------------------------+
+|                                           Spring Boot 3.3 REST Backend                                                |
+|                                                                                                                       |
+|  [REST Controllers]                                                                                                   |
+|    • /api/ai/query         • /api/briefing         • /api/commitments         • /api/calendar       • /api/emails     |
+|                                                                                                                       |
+|  [Domain Services]                                                                                                    |
+|    • BriefingService       • CommitmentService     • CalendarService          • EmailService                          |
+|                                                                                                                       |
+|  [AI Reasoning Layer]                                                                                                 |
+|    • AiGroundingContextBuilder (Structured prompt injection from DB)                                                   |
+|    • GroundedLlmAiService      (OpenAI / Gemini LLM API client)                                                       |
+|    • GroundedFallbackAiService (Local deterministic semantic engine - 0 hallucinations)                               |
++-----------------------------------------------------------------------------------------------------------------------+
+                                                             |
+                                                       Spring Data JPA
+                                                             v
+                                      +---------------------------------------------+
+                                      |        PostgreSQL / In-Memory H2 DB         |
+                                      |  (People, Commitments, Events, Threads,     |
+                                      |   Messages, Meetings, VoiceNotes)           |
+                                      +---------------------------------------------+
 ```
 
-## 🏃 Local Development
+---
+
+## 🧠 Grounded AI Executive Assistant
+
+The AI Assistant is accessible directly on the main Executive Briefing screen and via a dedicated command center.
+
+### Natural-Language Executive Queries Supported:
+- *"What needs my attention today?"*
+- *"What commitments of mine are still pending?"*
+- *"What am I late on?"*
+- *"What is the most urgent unresolved issue?"*
+- *"Why is the Mumbai lease renewal considered critical?"*
+- *"What did I promise Raghav?"*
+- *"What changed regarding the campaign deck?"*
+- *"Summarize the important updates from my emails."*
+- *"What do I need to prepare before board prep?"*
+- *"Show me everything related to Meridian Logistics."*
+- *"What meetings do I have today?"*
+- *"Who is waiting on me?"*
+- *"Which commitments were completed?"*
+
+### Trust & Grounding Guarantee:
+1. **Strict Source Attribution**: Every response cites supporting documents (`[Leadership Sync]`, `[Email Thread: Vendor List]`, `[Voice Note 1]`, `[Calendar]`) with exact timestamps and quotes.
+2. **Commitment Ownership Distinction**: Clearly separates Arjun's commitments from team deliverables (Neha, Divya, Priya, Facilities).
+3. **Status Reconciled Across Sources**: Accurately tracks changed deadlines and completed deliverables without false alarms.
+4. **Server-Side Security**: External AI API keys (OpenAI / Gemini) remain in server-side environment variables (`AI_API_KEY`) and are **never exposed to the client bundle**.
+
+---
+
+## 🎯 Critical Assignment Scenarios (Reconciled & Tested)
+
+| Scenario | Ground Truth Evolution | Grounded System Outcome |
+| :--- | :--- | :--- |
+| **1. Vendor List** | Promised to Raghav by Tue EOD (Mon sync). Slipped to Tue morning (Mon email), then Wed morning (Tue email). Raghav checked in 3 times (Mon 9:50 AM, Tue 9:15 AM, Wed 8:45 AM). Arjun noted delay in Voice Note 1. | **Status: OVERDUE / AT-RISK**. Owner: Arjun. Counterparty: Raghav. Highlighted with 3 delay milestones; Raghav waiting. |
+| **2. Q3 Campaign Deck** | Originally Wed, moved to Thu 9:30 AM (before board prep). Neha delivered finished draft **Thu 8:00 AM** ahead of review. | **Status: RESOLVED / DELIVERED**. Not overdue. AI notes double-booking on Thu 9:30 AM and suggests asynchronous review. |
+| **3. Meridian Logistics** | Call bumped by client (Mon). Arjun proposed Wed 3:00 PM; Priya confirmed Tue 5:45 PM. Reconfirmed Wed 1:30 PM & 2:00 PM. | **Status: RESOLVED / CONFIRMED**. On calendar for Wed 23 Sep 3:00–3:30 PM. Not pending. |
+| **4. Expense Variance Report** | Arjun requested July variance before Thu board prep. Divya delivered **Wed 6:00 PM** as promised. Arjun acknowledged at 6:10 PM. | **Status: COMPLETED (Divya) / PENDING REVIEW (Arjun)**. Delivery complete; Arjun must review before Thu 9:00 AM board prep. |
+| **5. Mumbai Lease Renewal** | Sign-off required by **Friday 25 Sep EOD**. Ownership unassigned in sync (*"flag it, don't assume"*). Raghav escalated Tue 11 AM and Thu 4:45 PM. Voice Note 1: *"someone needs to own that, I don't think it's me."* | **Status: UNASSIGNED / CRITICAL RISK**. #1 organizational risk. Primed for resolution during Friday 10:00 AM Facilities Check-in. |
+
+---
+
+## 🛠️ Technology Stack & Interview Defensibility
+
+| Layer | Technology | Engineering Rationale |
+| :--- | :--- | :--- |
+| **Backend** | **Java 21 / Spring Boot 3.3** | Enterprise-grade standard for high-throughput microservices, OOP domain modeling, and REST APIs. |
+| **Persistence** | **PostgreSQL & Spring Data JPA** | Relational integrity with Foreign Keys connecting People, Commitments, Calendar Events, Email Threads, and Transcripts. H2 PostgreSQL mode for zero-config local dev. |
+| **AI Integration** | **Spring RestClient + Grounded Prompt Context** | Clean `AiService` interface supporting live LLM inference (Gemini / OpenAI) with automatic fallback to a local deterministic engine with 0 hallucinations. |
+| **Frontend** | **React 18, TypeScript, Tailwind CSS v4, Framer Motion** | Type-safe, component-driven UI with smooth micro-animations, no layout clipping, and clean responsive flex/grid layouts. |
+| **Containers** | **Docker & Docker Compose** | Reproducible multi-container runtime orchestrating PostgreSQL and the Spring Boot fat JAR. |
+
+---
+
+## 🚀 Running Locally
+
+### Option 1: One-Command Spring Boot Run (Frontend Pre-Bundled)
+
+The Spring Boot application serves both the backend REST APIs and the production-optimized React SPA at `http://localhost:8080`:
 
 ```bash
-# Clone the repository
-git clone https://github.com/Deepanshu954/exec-productivity-agent.git
-cd exec-productivity-agent
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
+cd exec-agent/backend
+mvn clean compile test package -DskipTests=true
+java -jar target/exec-agent-backend-1.0.0.jar
 ```
 
-## 📊 Key Assignment Scenarios
+Open [http://localhost:8080](http://localhost:8080) in your browser.
 
-The agent correctly handles all assignment-provided scenarios:
+### Option 2: Docker Compose (PostgreSQL + Spring Boot)
 
-1. **Vendor List (Raghav → Arjun)**: Tracked as "at-risk" — Arjun promised Mon EOD, delayed to Tue, then Wed. Three follow-ups by Raghav.
-2. **Q3 Campaign Deck (Neha → Arjun)**: Originally Wed review, shifted to Thu 9:30 AM. Deck delivered Thu 8:00 AM. Status: resolved.
-3. **Meridian Logistics Call**: Rescheduled to Wed 3 PM. Both parties confirmed. Status: resolved.
-4. **Expense Variance Report (Divya → Arjun)**: Deadline moved to Wed evening (from Thu). Delivered on time at 6 PM. Status: resolved.
-5. **Mumbai Office Lease Renewal**: CRITICAL — Friday EOD deadline, no owner assigned despite 2 Facilities reminders and Raghav escalation.
+```bash
+cd exec-agent
+docker compose up --build
+```
 
-## 👤 Author
+### Option 3: Full Development Mode (Hot Reload)
 
-**Deepanshu Chauhan**  
-B.Tech CSE, Bennett University (CGPA: 8.33)  
-[GitHub](https://github.com/Deepanshu954) | [LinkedIn](https://linkedin.com/in/deepanshu954) | [LeetCode](https://leetcode.com/u/Deepanshu954)
+1. **Start Backend**:
+   ```bash
+   cd exec-agent/backend
+   mvn spring-boot:run
+   ```
+2. **Start Frontend Dev Server**:
+   ```bash
+   cd exec-agent
+   npm install
+   npm run dev
+   ```
+   Open [http://localhost:5173](http://localhost:5173). Requests to `/api/**` automatically proxy to `http://localhost:8080`.
+
+---
+
+## 🧪 Automated Testing
+
+Run the Spring Boot integration test suite:
+
+```bash
+cd exec-agent/backend
+mvn clean test
+```
+
+Verifies:
+- Complete database seeding (6 people, 6 commitments, 25 calendar events, 5 email threads, 2 voice notes, 1 meeting transcript).
+- Scenario 1 (Vendor List identified as overdue with 3 delays).
+- Scenario 2 (Q3 Campaign Deck recognized as delivered Thu 8 AM).
+- Scenario 3 (Meridian Logistics call verified as confirmed for Wed 3 PM).
+- Scenario 4 (Expense report delivery completed, Arjun review pending).
+- Scenario 5 (Mumbai Lease recognized as unassigned critical risk due Friday EOD).
+- Natural-language query response accuracy and source citations.
+
+---
+
+## 🛡️ Security & Environmental Discipline
+
+- **No Public API Keys**: Never embed keys in frontend bundles or `VITE_*` public variables.
+- **Server-Side Isolation**: AI credentials reside solely in server environment variables (`AI_API_KEY`).
+- **Input Sanitization**: Query endpoints validate parameters and protect against injection.

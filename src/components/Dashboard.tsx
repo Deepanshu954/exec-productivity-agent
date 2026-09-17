@@ -1,225 +1,295 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, AlertCircle, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight, Mail, Sparkles } from 'lucide-react';
-import { briefings } from '../engine/briefing';
-import { weekDays } from '../data/calendar';
-import { formatTime } from '../engine/scheduler';
+import { useState, useEffect } from 'react';
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  AlertTriangle,
+  AlertCircle,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert
+} from 'lucide-react';
+import { api, type BriefingDto } from '../services/api';
+import AiAssistant from './AiAssistant';
 
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-const fadeUp = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
+const weekDays = [
+  { day: 'Mon', date: '2026-09-21', label: 'Mon 21 Sep' },
+  { day: 'Tue', date: '2026-09-22', label: 'Tue 22 Sep' },
+  { day: 'Wed', date: '2026-09-23', label: 'Wed 23 Sep' },
+  { day: 'Thu', date: '2026-09-24', label: 'Thu 24 Sep' },
+  { day: 'Fri', date: '2026-09-25', label: 'Fri 25 Sep' },
+];
 
-export default function Dashboard() {
-  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
-  const briefing = briefings[selectedDayIndex];
+export default function Dashboard({ onNavigate }: { onNavigate?: (view: string) => void }) {
+  const [selectedDayIndex, setSelectedDayIndex] = useState(2); // Default to Wed 23 Sep where multiple actions happen
+  const [briefing, setBriefing] = useState<BriefingDto | null>(null);
+  const [selectedQuery, setSelectedQuery] = useState<string | undefined>(undefined);
+
+  const currentDay = weekDays[selectedDayIndex];
+
+  useEffect(() => {
+    loadBriefing(currentDay.date);
+  }, [selectedDayIndex]);
+
+  const loadBriefing = async (dateStr: string) => {
+    try {
+      const data = await api.getBriefing(dateStr);
+      setBriefing(data);
+    } catch (e) {
+      console.error('Failed to load briefing:', e);
+    }
+  };
+
+  const handlePromptClick = (prompt: string) => {
+    setSelectedQuery(prompt);
+  };
 
   return (
     <div className="space-y-8">
-      {/* Day Selector */}
-      <div className="flex items-center gap-2 sm:gap-3 justify-center">
-        <button
-          onClick={() => setSelectedDayIndex(Math.max(0, selectedDayIndex - 1))}
-          disabled={selectedDayIndex === 0}
-          className="p-2 rounded-xl hover:bg-[var(--color-hover)] disabled:opacity-20 transition-all text-[var(--color-text-2)]"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div className="flex gap-1.5">
-          {weekDays.map((day, i) => (
+      {/* 1. Date & Day Selector Navigation */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border-primary)] shadow-sm">
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="w-5 h-5 text-[var(--color-brand)]" />
+          <span className="text-sm font-semibold text-[var(--color-text-0)]">
+            Active Week: Sep 21 – Sep 25, 2026
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 bg-[var(--color-surface-2)] p-1 rounded-xl border border-[var(--color-border-primary)]">
+          <button
+            onClick={() => setSelectedDayIndex(Math.max(0, selectedDayIndex - 1))}
+            disabled={selectedDayIndex === 0}
+            className="p-1.5 rounded-lg text-[var(--color-text-2)] hover:text-white disabled:opacity-20 transition-all"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+
+          {weekDays.map((day, idx) => (
             <button
               key={day.date}
-              onClick={() => setSelectedDayIndex(i)}
-              className={`relative px-3 sm:px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                i === selectedDayIndex
-                  ? 'text-white'
-                  : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-hover)]'
+              onClick={() => setSelectedDayIndex(idx)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all relative ${
+                idx === selectedDayIndex
+                  ? 'bg-gradient-to-r from-[var(--color-brand)] to-purple-600 text-white shadow-sm'
+                  : 'text-[var(--color-text-2)] hover:text-white hover:bg-[var(--color-hover)]'
               }`}
             >
-              {i === selectedDayIndex && (
-                <motion.div
-                  layoutId="dayPill"
-                  className="absolute inset-0 bg-gradient-to-r from-[var(--color-brand)] to-[#9b6dff] rounded-xl"
-                  style={{ zIndex: -1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="hidden sm:inline">{day.label}</span>
-              <span className="sm:hidden">{day.day}</span>
+              {day.label}
             </button>
           ))}
+
+          <button
+            onClick={() => setSelectedDayIndex(Math.min(4, selectedDayIndex + 1))}
+            disabled={selectedDayIndex === 4}
+            className="p-1.5 rounded-lg text-[var(--color-text-2)] hover:text-white disabled:opacity-20 transition-all"
+            aria-label="Next day"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={() => setSelectedDayIndex(Math.min(4, selectedDayIndex + 1))}
-          disabled={selectedDayIndex === 4}
-          className="p-2 rounded-xl hover:bg-[var(--color-hover)] disabled:opacity-20 transition-all text-[var(--color-text-2)]"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
       </div>
 
-      {/* Hero Briefing */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={briefing.date}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.3 }}
-          className="relative overflow-hidden rounded-2xl border border-[var(--color-border-primary)]"
-        >
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-brand)]/10 via-transparent to-[var(--color-cyan)]/5" />
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-brand)]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          
-          <div className="relative px-6 sm:px-8 py-7">
-            <div className="flex items-start gap-4">
-              <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--color-brand)] via-[#9b6dff] to-[var(--color-cyan)] items-center justify-center shrink-0 shadow-lg shadow-[var(--color-brand)]/25">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-brand-light)] mb-1.5">
-                  Daily Briefing
-                </p>
-                <h2 className="text-xl sm:text-2xl font-bold text-[var(--color-text-0)] mb-3">
-                  {briefing.dayLabel}
-                </h2>
-                <p className="text-[15px] text-[var(--color-text-1)] leading-relaxed max-w-2xl">
-                  {briefing.greeting}
-                </p>
-              </div>
+      {/* 2. Executive Synthesis Card */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-brand)]/30 bg-gradient-to-br from-[var(--color-brand)]/10 via-[var(--color-surface-1)] to-purple-950/20 p-6 sm:p-8 shadow-xl">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[var(--color-brand)] to-purple-500 flex items-center justify-center shadow-lg shadow-[var(--color-brand)]/25">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-brand-light)]">
+                AI Executive Briefing
+              </span>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-white">
+                {briefing?.dayLabel || currentDay.label}
+              </h2>
             </div>
           </div>
-        </motion.div>
-      </AnimatePresence>
 
-      {/* Content Grid */}
-      <motion.div
-        key={`grid-${briefing.date}`}
-        variants={stagger}
-        initial="hidden"
-        animate="show"
-        className="grid grid-cols-1 lg:grid-cols-2 gap-5"
-      >
-        {/* Today's Agenda */}
-        <motion.div variants={fadeUp} className="card p-6">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-brand-glow)] flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-[var(--color-brand-light)]" />
-            </div>
-            <h3 className="text-[14px] font-bold text-[var(--color-text-0)]">Today's Agenda</h3>
-            <span className="ml-auto pill bg-[var(--color-surface-4)] text-[var(--color-text-2)]">{briefing.agenda.length} events</span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/30">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {briefing?.criticalAlerts?.length || 2} Critical Attention Items
+            </span>
           </div>
-          {briefing.agenda.length === 0 ? (
-            <div className="py-6 text-center text-sm text-[var(--color-text-3)] italic">No events scheduled</div>
-          ) : (
-            <div className="space-y-2">
-              {briefing.agenda.map((event, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    event.isBlocked
-                      ? 'bg-[var(--color-surface-3)]/50 opacity-40'
-                      : 'bg-[var(--color-surface-3)] hover:bg-[var(--color-hover)] cursor-default'
-                  }`}
+        </div>
+
+        <p className="text-[14px] sm:text-[15px] text-[var(--color-text-1)] leading-relaxed max-w-4xl">
+          {briefing?.executiveSummary}
+        </p>
+
+        {/* Actionable Executive Alert Bar */}
+        <div className="mt-6 pt-5 border-t border-[var(--color-border-primary)] grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20">
+            <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-red-300">
+                Vendor List Overdue (Raghav waiting)
+              </p>
+              <p className="text-[11px] text-[var(--color-text-2)] mt-0.5">
+                Slipped 3 times across Mon, Tue, and Wed morning. Immediate delivery needed.
+              </p>
+            </div>
+            <button
+              onClick={() => handlePromptClick('What did I promise Raghav?')}
+              className="ml-auto text-[11px] font-semibold text-red-300 underline hover:text-white shrink-0"
+            >
+              Details
+            </button>
+          </div>
+
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-amber-300">
+                Mumbai Lease Renewal Unassigned
+              </p>
+              <p className="text-[11px] text-[var(--color-text-2)] mt-0.5">
+                Deadline Friday EOD. Raghav escalated twice; resolve during Friday 10 AM Facilities Check-in.
+              </p>
+            </div>
+            <button
+              onClick={() => handlePromptClick('Why is the Mumbai lease renewal considered critical?')}
+              className="ml-auto text-[11px] font-semibold text-amber-300 underline hover:text-white shrink-0"
+            >
+              Details
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Core Workspace Layout: AI Agent Interactive Cockpit & Agenda */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Prominent AI Assistant (Executive Command Panel) */}
+        <div className="xl:col-span-7 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[var(--color-brand)]" />
+              <h3 className="text-lg font-bold text-white">Ask Your Executive Agent</h3>
+            </div>
+            <span className="text-xs text-[var(--color-text-3)]">
+              Grounded in all 5 assignment sources
+            </span>
+          </div>
+
+          <AiAssistant initialQuery={selectedQuery} />
+        </div>
+
+        {/* Right Column: Schedule & Active Commitments */}
+        <div className="xl:col-span-5 space-y-6">
+          {/* Today's Schedule Card */}
+          <div className="p-6 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border-primary)] shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[var(--color-brand-light)]" />
+                <h4 className="text-sm font-bold text-white">Today's Schedule (Arjun)</h4>
+              </div>
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate('calendar')}
+                  className="text-xs text-[var(--color-brand-light)] hover:underline flex items-center gap-1"
                 >
-                  <div className={`w-[3px] h-8 rounded-full shrink-0 ${event.isBlocked ? 'bg-[var(--color-text-3)]' : 'bg-gradient-to-b from-[var(--color-brand)] to-[var(--color-brand-light)]'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-[var(--color-text-0)] truncate">
-                      {event.isBlocked ? '🔒 Blocked' : event.event}
-                    </p>
-                    <p className="text-[11px] text-[var(--color-text-3)] mt-0.5">
-                      {formatTime(event.startTime)} – {formatTime(event.endTime)}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                  Full Calendar <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
-          )}
-        </motion.div>
 
-        {/* Key Insights */}
-        <motion.div variants={fadeUp} className="card p-6">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-amber-glow)] flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-[var(--color-amber)]" />
-            </div>
-            <h3 className="text-[14px] font-bold text-[var(--color-text-0)]">Key Insights</h3>
-          </div>
-          {briefing.keyInsights.length === 0 ? (
-            <div className="py-6 text-center text-sm text-[var(--color-text-3)] italic">All clear for today</div>
-          ) : (
-            <div className="space-y-2.5">
-              {briefing.keyInsights.map((insight, i) => (
-                <div key={i} className="flex items-start gap-3 px-4 py-3 rounded-xl bg-[var(--color-surface-3)]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-amber)] mt-2 shrink-0 shadow-sm shadow-[var(--color-amber)]/50" />
-                  <p className="text-[13px] text-[var(--color-text-1)] leading-relaxed">{insight}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </motion.div>
+            {briefing?.agenda && briefing.agenda.length > 0 ? (
+              <div className="space-y-2.5">
+                {briefing.agenda.map((event) => (
+                  <div
+                    key={event.id}
+                    className={`p-3.5 rounded-xl border transition-all ${
+                      event.hasConflict
+                        ? 'bg-red-500/10 border-red-500/30'
+                        : event.blocked
+                        ? 'bg-[var(--color-surface-2)]/50 border-[var(--color-border-primary)] opacity-50'
+                        : 'bg-[var(--color-surface-2)] border-[var(--color-border-primary)] hover:border-[var(--color-border-active)]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[var(--color-text-0)]">
+                        {event.title}
+                      </span>
+                      <span className="text-[11px] font-semibold text-[var(--color-brand-light)]">
+                        {event.timeRange}
+                      </span>
+                    </div>
 
-        {/* Pending on Arjun */}
-        <motion.div variants={fadeUp} className="card p-6">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-red-glow)] flex items-center justify-center">
-              <Clock className="w-4 h-4 text-[var(--color-red)]" />
-            </div>
-            <h3 className="text-[14px] font-bold text-[var(--color-text-0)]">Pending on Arjun</h3>
-            <span className="ml-auto pill bg-[var(--color-red-glow)] text-[var(--color-red)]">{briefing.pendingActions.length}</span>
-          </div>
-          <div className="space-y-2">
-            {briefing.pendingActions.map(action => (
-              <div key={action.id} className="flex items-start gap-3 px-4 py-3 rounded-xl bg-[var(--color-surface-3)] hover:bg-[var(--color-hover)] transition-all">
-                {action.status === 'completed' ? (
-                  <CheckCircle2 className="w-[18px] h-[18px] text-[var(--color-green)] mt-0.5 shrink-0" />
-                ) : action.status === 'overdue' || action.status === 'at-risk' ? (
-                  <AlertCircle className="w-[18px] h-[18px] text-[var(--color-red)] mt-0.5 shrink-0" />
-                ) : (
-                  <Clock className="w-[18px] h-[18px] text-[var(--color-amber)] mt-0.5 shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-[var(--color-text-0)]">{action.title}</p>
-                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    <span className={`pill ${
-                      action.priority === 'critical' ? 'bg-[var(--color-red-glow)] text-[var(--color-red)]' :
-                      action.priority === 'high' ? 'bg-[var(--color-amber-glow)] text-[var(--color-amber)]' :
-                      'bg-[var(--color-blue-glow)] text-[var(--color-blue)]'
-                    }`}>
-                      <span className={`glow-dot ${
-                        action.priority === 'critical' ? 'glow-dot-red' :
-                        action.priority === 'high' ? 'glow-dot-amber' : 'glow-dot-blue'
-                      }`} />
-                      {action.priority}
-                    </span>
-                    <span className="text-[11px] text-[var(--color-text-3)]">{action.deadlineLabel}</span>
+                    {event.hasConflict && (
+                      <p className="text-[11px] text-red-400 font-medium mt-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> {event.conflictNotes}
+                      </p>
+                    )}
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <p className="text-xs text-[var(--color-text-3)] italic py-4 text-center">
+                No events scheduled on this day.
+              </p>
+            )}
           </div>
-        </motion.div>
 
-        {/* Email Updates */}
-        <motion.div variants={fadeUp} className="card p-6">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-8 h-8 rounded-lg bg-[var(--color-blue-glow)] flex items-center justify-center">
-              <Mail className="w-4 h-4 text-[var(--color-blue)]" />
+          {/* Active Commitments Card */}
+          <div className="p-6 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border-primary)] shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-sm font-bold text-white">Active Commitments & Status</h4>
+              </div>
+              {onNavigate && (
+                <button
+                  onClick={() => onNavigate('actions')}
+                  className="text-xs text-[var(--color-brand-light)] hover:underline flex items-center gap-1"
+                >
+                  View All <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
             </div>
-            <h3 className="text-[14px] font-bold text-[var(--color-text-0)]">Email Updates</h3>
-          </div>
-          {briefing.emailUpdates.length === 0 ? (
-            <div className="py-6 text-center text-sm text-[var(--color-text-3)] italic">No email updates</div>
-          ) : (
-            <div className="space-y-2">
-              {briefing.emailUpdates.map((update, i) => (
-                <div key={i} className="px-4 py-3 rounded-xl bg-[var(--color-surface-3)] text-[13px] text-[var(--color-text-1)] leading-relaxed">
-                  {update}
+
+            <div className="space-y-3">
+              {briefing?.openCommitments?.map((c) => (
+                <div
+                  key={c.id}
+                  className="p-3.5 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border-primary)] hover:border-[var(--color-border-active)] transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-xs font-bold text-[var(--color-text-0)]">
+                      {c.title}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                        c.status === 'OVERDUE'
+                          ? 'bg-red-500/15 border-red-500/30 text-red-400'
+                          : c.status === 'AT_RISK'
+                          ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                          : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                      }`}
+                    >
+                      {c.status}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-[var(--color-text-2)] mt-1 line-clamp-2">
+                    {c.whyItMatters}
+                  </p>
+
+                  <div className="mt-2.5 pt-2 border-t border-[var(--color-border-primary)]/50 flex items-center justify-between text-[10px] text-[var(--color-text-3)]">
+                    <span>Owner: {c.owner?.name || 'UNASSIGNED'}</span>
+                    <span className="font-semibold text-[var(--color-text-2)]">
+                      Due: {c.currentDeadline}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </motion.div>
-      </motion.div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
