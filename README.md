@@ -4,7 +4,7 @@ An AI-powered executive productivity agent built for **Arjun Malhotra (VP Sales)
 
 ## 🚀 Live Demo
 
-[**Open the deployed application →**](https://exec-productivity-agent.vercel.app)
+[**Open the deployed application →**](https://exec-agent-rho.vercel.app)
 
 ## 📋 Features
 
