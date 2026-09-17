@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Clock, ArrowUpCircle, Filter, User, FileText, Mic, Mail } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Clock, ArrowUpCircle, User, FileText, Mic, Mail } from 'lucide-react';
 import { actionItems, type ActionStatus, type ActionPriority } from '../engine/actionItems';
+
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
+const fadeUp = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 export default function ActionItems() {
   const [statusFilter, setStatusFilter] = useState<ActionStatus | 'all'>('all');
@@ -15,40 +18,33 @@ export default function ActionItems() {
 
   const statusIcon = (status: ActionStatus) => {
     switch (status) {
-      case 'completed': return <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />;
-      case 'overdue': return <AlertCircle className="w-5 h-5 text-[var(--color-error)]" />;
-      case 'at-risk': return <ArrowUpCircle className="w-5 h-5 text-[var(--color-warning)]" />;
-      case 'in-progress': return <Clock className="w-5 h-5 text-[var(--color-info)]" />;
-      default: return <Clock className="w-5 h-5 text-[var(--color-text-muted)]" />;
+      case 'completed': return <CheckCircle2 className="w-5 h-5 text-[var(--color-green)]" />;
+      case 'overdue': return <AlertCircle className="w-5 h-5 text-[var(--color-red)]" />;
+      case 'at-risk': return <ArrowUpCircle className="w-5 h-5 text-[var(--color-amber)]" />;
+      default: return <Clock className="w-5 h-5 text-[var(--color-text-3)]" />;
     }
   };
 
-  const statusLabel = (status: ActionStatus) => {
-    const labels: Record<ActionStatus, { text: string; color: string }> = {
-      'pending': { text: 'Pending', color: 'text-[var(--color-warning)] bg-[var(--color-warning-subtle)]' },
-      'in-progress': { text: 'In Progress', color: 'text-[var(--color-info)] bg-[var(--color-info-subtle)]' },
-      'completed': { text: 'Completed', color: 'text-[var(--color-success)] bg-[var(--color-success-subtle)]' },
-      'overdue': { text: 'Overdue', color: 'text-[var(--color-error)] bg-[var(--color-error-subtle)]' },
-      'at-risk': { text: 'At Risk', color: 'text-[var(--color-error)] bg-[var(--color-error-subtle)]' },
-    };
-    return labels[status];
+  const statusConfig: Record<ActionStatus, { text: string; dot: string; pill: string }> = {
+    'pending': { text: 'Pending', dot: 'glow-dot-amber', pill: 'bg-[var(--color-amber-glow)] text-[var(--color-amber)]' },
+    'in-progress': { text: 'In Progress', dot: 'glow-dot-blue', pill: 'bg-[var(--color-blue-glow)] text-[var(--color-blue)]' },
+    'completed': { text: 'Done', dot: 'glow-dot-green', pill: 'bg-[var(--color-green-glow)] text-[var(--color-green)]' },
+    'overdue': { text: 'Overdue', dot: 'glow-dot-red', pill: 'bg-[var(--color-red-glow)] text-[var(--color-red)]' },
+    'at-risk': { text: 'At Risk', dot: 'glow-dot-red', pill: 'bg-[var(--color-red-glow)] text-[var(--color-red)]' },
   };
 
-  const priorityBadge = (priority: ActionPriority) => {
-    const styles: Record<ActionPriority, string> = {
-      'critical': 'bg-[var(--color-error)] text-white',
-      'high': 'bg-[var(--color-warning)] text-black',
-      'medium': 'bg-[var(--color-info)] text-white',
-      'low': 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]',
-    };
-    return styles[priority];
+  const priorityConfig: Record<ActionPriority, { text: string; dot: string; pill: string }> = {
+    'critical': { text: 'CRITICAL', dot: 'glow-dot-red', pill: 'bg-[var(--color-red)] text-white' },
+    'high': { text: 'HIGH', dot: 'glow-dot-amber', pill: 'bg-[var(--color-amber)] text-black' },
+    'medium': { text: 'MEDIUM', dot: 'glow-dot-blue', pill: 'bg-[var(--color-blue-glow)] text-[var(--color-blue)]' },
+    'low': { text: 'LOW', dot: 'glow-dot-brand', pill: 'bg-[var(--color-surface-4)] text-[var(--color-text-2)]' },
   };
 
   const sourceIcon = (source: string) => {
     switch (source) {
-      case 'meeting': return <FileText className="w-3.5 h-3.5" />;
-      case 'email': return <Mail className="w-3.5 h-3.5" />;
-      case 'voice-note': return <Mic className="w-3.5 h-3.5" />;
+      case 'meeting': return <FileText className="w-3 h-3" />;
+      case 'email': return <Mail className="w-3 h-3" />;
+      case 'voice-note': return <Mic className="w-3 h-3" />;
       default: return null;
     }
   };
@@ -61,49 +57,48 @@ export default function ActionItems() {
   };
 
   return (
-    <div className="space-y-5">
-      {/* Summary stats */}
+    <div className="space-y-6">
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total', value: counts.all, color: 'var(--color-accent)' },
-          { label: 'Critical', value: counts.critical, color: 'var(--color-error)' },
-          { label: 'Open', value: counts.pending, color: 'var(--color-warning)' },
-          { label: 'Done', value: counts.completed, color: 'var(--color-success)' },
+          { label: 'Total Items', value: counts.all, gradient: 'from-[var(--color-brand)]/10 to-transparent', color: 'text-[var(--color-brand-light)]' },
+          { label: 'Critical', value: counts.critical, gradient: 'from-[var(--color-red)]/10 to-transparent', color: 'text-[var(--color-red)]' },
+          { label: 'Open', value: counts.pending, gradient: 'from-[var(--color-amber)]/10 to-transparent', color: 'text-[var(--color-amber)]' },
+          { label: 'Completed', value: counts.completed, gradient: 'from-[var(--color-green)]/10 to-transparent', color: 'text-[var(--color-green)]' },
         ].map(stat => (
-          <div key={stat.label} className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
-            <p className="text-xs text-[var(--color-text-muted)] mt-1">{stat.label}</p>
+          <div key={stat.label} className={`card bg-gradient-to-br ${stat.gradient} p-5 text-center`}>
+            <p className={`text-3xl font-extrabold ${stat.color}`}>{stat.value}</p>
+            <p className="text-[11px] font-medium text-[var(--color-text-3)] mt-1 uppercase tracking-wide">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Filter className="w-4 h-4 text-[var(--color-text-muted)]" />
-        <div className="flex gap-1.5">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 p-1 bg-[var(--color-surface-2)] rounded-xl border border-[var(--color-border-primary)]">
           {(['all', 'pending', 'at-risk', 'overdue', 'completed'] as const).map(s => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
                 statusFilter === s
-                  ? 'bg-[var(--color-accent)] text-white'
-                  : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]'
+                  ? 'bg-[var(--color-brand)] text-white shadow-lg shadow-[var(--color-brand)]/20'
+                  : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-hover)]'
               }`}
             >
-              {s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}
+              {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1).replace('-', ' ')}
             </button>
           ))}
         </div>
-        <div className="flex gap-1.5 ml-2">
+        <div className="flex gap-1 p-1 bg-[var(--color-surface-2)] rounded-xl border border-[var(--color-border-primary)]">
           {(['all', 'critical', 'high', 'medium'] as const).map(p => (
             <button
               key={p}
               onClick={() => setPriorityFilter(p)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
                 priorityFilter === p
-                  ? 'bg-[var(--color-accent)] text-white'
-                  : 'bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]'
+                  ? 'bg-[var(--color-brand)] text-white shadow-lg shadow-[var(--color-brand)]/20'
+                  : 'text-[var(--color-text-3)] hover:text-[var(--color-text-1)] hover:bg-[var(--color-hover)]'
               }`}
             >
               {p === 'all' ? 'All Priority' : p.charAt(0).toUpperCase() + p.slice(1)}
@@ -112,63 +107,61 @@ export default function ActionItems() {
         </div>
       </div>
 
-      {/* Action Items */}
-      <div className="space-y-3">
-        {filtered.map((item, i) => {
-          const sl = statusLabel(item.status);
+      {/* Cards */}
+      <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-3">
+        {filtered.map(item => {
+          const sc = statusConfig[item.status];
+          const pc = priorityConfig[item.priority];
           return (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-5 hover:border-[var(--color-accent)]/30 transition-all"
+              variants={fadeUp}
+              className="card card-glow p-5"
             >
-              <div className="flex items-start gap-3">
-                {statusIcon(item.status)}
+              <div className="flex items-start gap-4">
+                <div className="mt-0.5">{statusIcon(item.status)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{item.title}</h3>
+                    <h3 className="text-[14px] font-bold text-[var(--color-text-0)]">{item.title}</h3>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${priorityBadge(item.priority)}`}>
-                        {item.priority.toUpperCase()}
+                      <span className={`pill ${pc.pill}`}>
+                        {item.priority !== 'low' && <span className={`glow-dot ${pc.dot}`} />}
+                        {pc.text}
                       </span>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sl.color}`}>
-                        {sl.text}
+                      <span className={`pill ${sc.pill}`}>
+                        <span className={`glow-dot ${sc.dot}`} />
+                        {sc.text}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4 mt-2 text-xs text-[var(--color-text-muted)]">
-                    <span className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      {item.owner}
+                  <div className="flex items-center gap-4 mt-2.5 text-[12px] text-[var(--color-text-3)]">
+                    <span className="flex items-center gap-1.5">
+                      <User className="w-3 h-3" /> {item.owner}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {item.deadlineLabel}
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" /> {item.deadlineLabel}
                     </span>
-                    <span className="flex items-center gap-1">
-                      {sourceIcon(item.source)}
-                      {item.source}
+                    <span className="flex items-center gap-1.5">
+                      {sourceIcon(item.source)} {item.source}
                     </span>
                   </div>
 
-                  <div className="mt-3 p-3 rounded-lg bg-[var(--color-surface)] text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                    <p className="font-medium text-[var(--color-text-muted)] mb-1">Source Detail:</p>
-                    <p>{item.sourceDetail}</p>
+                  <div className="mt-3 p-3.5 rounded-xl bg-[var(--color-surface-3)] border border-[var(--color-border-primary)]">
+                    <p className="text-[10px] font-bold text-[var(--color-text-3)] uppercase tracking-wider mb-1.5">Source Trail</p>
+                    <p className="text-[12px] text-[var(--color-text-1)] leading-relaxed">{item.sourceDetail}</p>
                   </div>
 
-                  <div className="mt-2 p-3 rounded-lg bg-[var(--color-surface)] text-xs text-[var(--color-text-secondary)] leading-relaxed">
-                    <p className="font-medium text-[var(--color-text-muted)] mb-1">Current Status:</p>
-                    <p>{item.notes}</p>
+                  <div className="mt-2 p-3.5 rounded-xl bg-[var(--color-surface-3)] border border-[var(--color-border-primary)]">
+                    <p className="text-[10px] font-bold text-[var(--color-text-3)] uppercase tracking-wider mb-1.5">Current Status</p>
+                    <p className="text-[12px] text-[var(--color-text-1)] leading-relaxed">{item.notes}</p>
                   </div>
                 </div>
               </div>
             </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

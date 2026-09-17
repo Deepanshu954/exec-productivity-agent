@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { Search as SearchIcon, FileText, Mail, Mic, Calendar, X, Hash, Zap } from 'lucide-react';
 import { search, suggestedQueries, type SearchResult } from '../engine/search';
 
+const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0 } };
+
 export default function SearchView() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -14,61 +16,47 @@ export default function SearchView() {
     setResults(search(q));
   };
 
-  const typeIcon = (type: SearchResult['type']) => {
-    switch (type) {
-      case 'action-item': return <Zap className="w-4 h-4 text-[var(--color-warning)]" />;
-      case 'email': return <Mail className="w-4 h-4 text-[var(--color-info)]" />;
-      case 'meeting': return <FileText className="w-4 h-4 text-blue-400" />;
-      case 'voice-note': return <Mic className="w-4 h-4 text-purple-400" />;
-      case 'calendar': return <Calendar className="w-4 h-4 text-[var(--color-success)]" />;
-      case 'thread-summary': return <Hash className="w-4 h-4 text-[var(--color-accent)]" />;
-    }
-  };
-
-  const typeLabel = (type: SearchResult['type']) => {
-    const labels: Record<string, string> = {
-      'action-item': 'Action Item',
-      'email': 'Email',
-      'meeting': 'Meeting',
-      'voice-note': 'Voice Note',
-      'calendar': 'Calendar',
-      'thread-summary': 'Thread Summary',
-    };
-    return labels[type] || type;
+  const typeConfig: Record<string, { icon: typeof Zap; color: string; bg: string; label: string }> = {
+    'action-item': { icon: Zap, color: 'text-[var(--color-amber)]', bg: 'bg-[var(--color-amber-glow)]', label: 'Action Item' },
+    'email': { icon: Mail, color: 'text-[var(--color-blue)]', bg: 'bg-[var(--color-blue-glow)]', label: 'Email' },
+    'meeting': { icon: FileText, color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Meeting' },
+    'voice-note': { icon: Mic, color: 'text-purple-400', bg: 'bg-purple-500/10', label: 'Voice Note' },
+    'calendar': { icon: Calendar, color: 'text-[var(--color-green)]', bg: 'bg-[var(--color-green-glow)]', label: 'Calendar' },
+    'thread-summary': { icon: Hash, color: 'text-[var(--color-brand-light)]', bg: 'bg-[var(--color-brand-glow)]', label: 'Thread Summary' },
   };
 
   return (
-    <div className="space-y-5">
-      {/* Search Input */}
+    <div className="space-y-6">
+      {/* Search input */}
       <div className="relative">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)]" />
+        <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-3)]" />
         <input
           type="text"
           value={query}
           onChange={(e) => doSearch(e.target.value)}
-          placeholder='Search across all data — try "vendor list", "Mumbai lease", "Neha deck"...'
-          className="w-full pl-12 pr-10 py-3.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] transition-all"
+          placeholder='Search all data — "vendor list", "Mumbai lease", "Neha deck"...'
+          className="w-full pl-14 pr-12 py-4 bg-[var(--color-surface-2)] border border-[var(--color-border-primary)] rounded-2xl text-[14px] text-[var(--color-text-0)] placeholder:text-[var(--color-text-3)] focus:outline-none focus:border-[var(--color-brand)]/50 focus:shadow-lg focus:shadow-[var(--color-brand)]/5 transition-all"
         />
         {query && (
           <button
             onClick={() => { setQuery(''); setResults([]); setHasSearched(false); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+            className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--color-text-3)] hover:text-[var(--color-text-1)] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Suggested Queries */}
+      {/* Suggested */}
       {!hasSearched && (
         <div>
-          <p className="text-xs text-[var(--color-text-muted)] mb-2">Suggested searches:</p>
+          <p className="text-[11px] font-bold text-[var(--color-text-3)] uppercase tracking-widest mb-3">Suggested Searches</p>
           <div className="flex flex-wrap gap-2">
             {suggestedQueries.map(sq => (
               <button
                 key={sq}
                 onClick={() => doSearch(sq)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
+                className="px-4 py-2 rounded-xl text-[12px] font-semibold bg-[var(--color-surface-2)] border border-[var(--color-border-primary)] text-[var(--color-text-2)] hover:border-[var(--color-brand)]/40 hover:text-[var(--color-brand-light)] hover:bg-[var(--color-brand-glow)] transition-all"
               >
                 {sq}
               </button>
@@ -80,42 +68,47 @@ export default function SearchView() {
       {/* Results */}
       {hasSearched && (
         <div>
-          <p className="text-xs text-[var(--color-text-muted)] mb-3">
-            {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
+          <p className="text-[12px] text-[var(--color-text-3)] mb-4 font-medium">
+            {results.length} result{results.length !== 1 ? 's' : ''} for "<span className="text-[var(--color-brand-light)]">{query}</span>"
           </p>
           {results.length === 0 ? (
-            <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-8 text-center">
-              <SearchIcon className="w-8 h-8 text-[var(--color-text-muted)] mx-auto mb-2" />
-              <p className="text-sm text-[var(--color-text-muted)]">No results found</p>
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">Try different keywords</p>
+            <div className="card p-12 text-center">
+              <SearchIcon className="w-10 h-10 text-[var(--color-text-3)] mx-auto mb-3 opacity-30" />
+              <p className="text-[14px] text-[var(--color-text-2)]">No results found</p>
+              <p className="text-[12px] text-[var(--color-text-3)] mt-1">Try different keywords</p>
             </div>
           ) : (
             <div className="space-y-2">
-              {results.map((result, i) => (
-                <motion.div
-                  key={`${result.type}-${i}`}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-4 hover:border-[var(--color-accent)]/30 transition-all"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">{typeIcon(result.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-sm font-medium text-[var(--color-text-primary)]">{result.title}</h3>
-                        <span className="text-[10px] font-medium text-[var(--color-text-muted)] bg-[var(--color-surface-hover)] px-1.5 py-0.5 rounded">
-                          {typeLabel(result.type)}
-                        </span>
+              {results.map((result, i) => {
+                const tc = typeConfig[result.type] || typeConfig['email'];
+                const Icon = tc.icon;
+                return (
+                  <motion.div
+                    key={`${result.type}-${i}`}
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate="show"
+                    transition={{ delay: i * 0.03 }}
+                    className="card card-glow p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${tc.bg} shrink-0`}>
+                        <Icon className={`w-4 h-4 ${tc.color}`} />
                       </div>
-                      <p className="text-xs text-[var(--color-text-secondary)] mt-1 leading-relaxed line-clamp-2">
-                        {result.snippet}
-                      </p>
-                      <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{result.source}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-[13px] font-semibold text-[var(--color-text-0)]">{result.title}</h3>
+                          <span className={`pill ${tc.bg} ${tc.color}`}>{tc.label}</span>
+                        </div>
+                        <p className="text-[12px] text-[var(--color-text-2)] mt-1.5 leading-relaxed line-clamp-2">
+                          {result.snippet}
+                        </p>
+                        <p className="text-[10px] text-[var(--color-text-3)] mt-2 font-medium">{result.source}</p>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
