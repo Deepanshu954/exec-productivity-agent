@@ -1,138 +1,176 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import Sidebar, { type View } from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import ActionItems from './components/ActionItems';
-import CalendarView from './components/CalendarView';
-import EmailThreads from './components/EmailThreads';
-import ConflictAlerts from './components/ConflictAlerts';
-import VoiceNotes from './components/VoiceNotes';
-import SchedulerView from './components/SchedulerView';
-import AiAssistant from './components/AiAssistant';
-import { api } from './services/api';
+import { Sparkles, CheckSquare, Calendar, Database, Key, ShieldCheck } from 'lucide-react';
+import DailyBriefingChat from './components/DailyBriefingChat';
+import CleanCommitments from './components/CleanCommitments';
+import CleanSchedule from './components/CleanSchedule';
+import SourceVaultModal from './components/SourceVaultModal';
+import KeySettingsModal from './components/KeySettingsModal';
 
-const viewMeta: Record<View, { title: string; description: string }> = {
-  dashboard: {
-    title: 'Executive Command Center',
-    description: "Real-time executive briefing, urgent priorities, and AI assistant for Arjun Malhotra (VP Sales).",
-  },
-  assistant: {
-    title: 'AI Executive Agent',
-    description: 'Natural language reasoning engine strictly grounded in assignment data with evidence citations.',
-  },
-  actions: {
-    title: 'Commitments & Deliverables',
-    description: "Track Arjun's commitments vs team deliverables, delay counts, evidence quotes, and resolutions.",
-  },
-  calendar: {
-    title: 'Executive Calendar',
-    description: 'Week of 21–25 Sep 2026 — Multi-calendar view for Arjun, Neha, Raghav, and Divya with conflict detection.',
-  },
-  emails: {
-    title: 'Email Intelligence',
-    description: 'Complete 25-message email trails across all 5 threads, latest statuses, and blocking dependencies.',
-  },
-  conflicts: {
-    title: 'Alerts & Risk Matrix',
-    description: 'Surfacing double-bookings, overdue deliverables, and critical unassigned ownership items.',
-  },
-  voicenotes: {
-    title: 'Voice Notes & Sync Transcript',
-    description: "Arjun's personal dictated reminders and the verbatim Monday Leadership Sync transcript.",
-  },
-  scheduler: {
-    title: 'Smart Team Scheduler',
-    description: "Identify common free slots across team calendars (Arjun, Neha, Raghav, Divya).",
-  },
-};
+export type MainTab = 'briefing' | 'commitments' | 'schedule';
 
 function App() {
-  const [currentView, setCurrentView] = useState<View>('dashboard');
-  const [collapsed, setCollapsed] = useState(false);
-  const [conflictCount, setConflictCount] = useState(2);
+  const [activeTab, setActiveTab] = useState<MainTab>('briefing');
+  const [sourceVaultOpen, setSourceVaultOpen] = useState(false);
+  const [keyModalOpen, setKeyModalOpen] = useState(false);
+  const [initialChatPrompt, setInitialChatPrompt] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    api.getConflicts().then((conflicts) => {
-      setConflictCount(conflicts.filter((c) => c.severity === 'CRITICAL').length);
-    });
-  }, []);
-
-  const meta = viewMeta[currentView];
+  const handleAskAi = (prompt: string) => {
+    setInitialChatPrompt(prompt);
+    setActiveTab('briefing');
+  };
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-0)] text-[var(--color-text-0)] overflow-x-hidden">
-      {/* Sidebar */}
-      <Sidebar
-        currentView={currentView}
-        onViewChange={setCurrentView}
-        conflictCount={conflictCount}
-        collapsed={collapsed}
-        onToggleCollapse={() => setCollapsed(!collapsed)}
+    <div className="min-h-screen bg-[var(--color-surface-0)] text-[var(--color-text-0)] flex flex-col font-sans">
+      {/* 1. Sleek Executive Top Navigation */}
+      <header className="sticky top-0 z-30 h-16 border-b border-[var(--color-border-primary)] bg-[var(--color-surface-1)]/90 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between">
+        {/* Left: Brand & Executive Identity */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[var(--color-brand)] via-purple-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-[var(--color-brand)]/20">
+            <Sparkles className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-white tracking-tight">Veridian Agent</span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <ShieldCheck className="w-3 h-3" /> Grounded
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--color-text-3)] leading-none">
+              Arjun Malhotra • VP Sales
+            </p>
+          </div>
+        </div>
+
+        {/* Center: 3 Primary Workspaces (Clean Segmented Control) */}
+        <div className="hidden md:flex items-center p-1 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border-primary)]">
+          <button
+            onClick={() => setActiveTab('briefing')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'briefing'
+                ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                : 'text-[var(--color-text-2)] hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Daily Briefing & AI</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('commitments')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'commitments'
+                ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                : 'text-[var(--color-text-2)] hover:text-white'
+            }`}
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            <span>Commitments</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              activeTab === 'schedule'
+                ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                : 'text-[var(--color-text-2)] hover:text-white'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Schedule & Radar</span>
+          </button>
+        </div>
+
+        {/* Right: Source Vault & Key Settings */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setSourceVaultOpen(true)}
+            title="Inspect raw email trails, voice notes & sync transcripts"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:text-white border border-[var(--color-border-primary)] text-xs font-semibold transition-all"
+          >
+            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Source Vault</span>
+          </button>
+
+          <button
+            onClick={() => setKeyModalOpen(true)}
+            title="Configure Gemini API Keys"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-brand-light)] hover:text-white border border-[var(--color-border-primary)] text-xs font-semibold transition-all"
+          >
+            <Key className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">AI Keys</span>
+          </button>
+
+          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-3)] border border-[var(--color-border-primary)] hidden lg:inline-block">
+            Week 39 • Sep 2026
+          </span>
+        </div>
+      </header>
+
+      {/* Mobile Tab Strip (< md) */}
+      <div className="md:hidden flex items-center justify-around bg-[var(--color-surface-1)] border-b border-[var(--color-border-primary)] px-2 py-2">
+        <button
+          onClick={() => setActiveTab('briefing')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+            activeTab === 'briefing' ? 'bg-[var(--color-brand)] text-white' : 'text-[var(--color-text-3)]'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>Briefing & AI</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('commitments')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+            activeTab === 'commitments' ? 'bg-[var(--color-brand)] text-white' : 'text-[var(--color-text-3)]'
+          }`}
+        >
+          <CheckSquare className="w-3.5 h-3.5" />
+          <span>Commitments</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('schedule')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+            activeTab === 'schedule' ? 'bg-[var(--color-brand)] text-white' : 'text-[var(--color-text-3)]'
+          }`}
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Schedule</span>
+        </button>
+      </div>
+
+      {/* 2. Main Executive Workspace */}
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+          >
+            {activeTab === 'briefing' && (
+              <DailyBriefingChat initialQuery={initialChatPrompt} />
+            )}
+            {activeTab === 'commitments' && (
+              <CleanCommitments onAskAi={handleAskAi} />
+            )}
+            {activeTab === 'schedule' && (
+              <CleanSchedule onAskAi={handleAskAi} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </main>
+
+      {/* 3. On-Demand Modals */}
+      <SourceVaultModal
+        isOpen={sourceVaultOpen}
+        onClose={() => setSourceVaultOpen(false)}
       />
 
-      {/* Main Content Area */}
-      <main
-        className={`transition-all duration-200 ease-in-out pb-24 md:pb-12 ${
-          collapsed ? 'md:ml-20' : 'md:ml-64'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-          {/* Header Title & Subtitle */}
-          <div className="mb-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentView}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.15 }}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                      {meta.title}
-                    </h1>
-                    <p className="text-xs sm:text-sm text-[var(--color-text-2)] mt-1 max-w-3xl">
-                      {meta.description}
-                    </p>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-2">
-                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-2)] border border-[var(--color-border-primary)]">
-                      Week 39 • 2026
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Active View Renderer */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentView}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {currentView === 'dashboard' && (
-                <Dashboard onNavigate={(v) => setCurrentView(v as View)} />
-              )}
-              {currentView === 'assistant' && (
-                <div className="max-w-4xl mx-auto">
-                  <AiAssistant />
-                </div>
-              )}
-              {currentView === 'actions' && <ActionItems />}
-              {currentView === 'calendar' && <CalendarView />}
-              {currentView === 'emails' && <EmailThreads />}
-              {currentView === 'conflicts' && <ConflictAlerts />}
-              {currentView === 'voicenotes' && <VoiceNotes />}
-              {currentView === 'scheduler' && <SchedulerView />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
+      <KeySettingsModal
+        isOpen={keyModalOpen}
+        onClose={() => setKeyModalOpen(false)}
+      />
     </div>
   );
 }
