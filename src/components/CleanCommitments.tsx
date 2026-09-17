@@ -17,7 +17,7 @@ export default function CleanCommitments({ onAskAi }: { onAskAi?: (prompt: strin
   );
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+    <div className="w-full space-y-8 max-w-5xl mx-auto">
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border-primary)] pb-4">
         <div>

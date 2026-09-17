@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Sparkles, CheckSquare, Calendar, Database, Key, ShieldCheck } from 'lucide-react';
+import { Sparkles, CheckSquare, Calendar, Database, ShieldCheck } from 'lucide-react';
 import DailyBriefingChat from './components/DailyBriefingChat';
 import CleanCommitments from './components/CleanCommitments';
 import CleanSchedule from './components/CleanSchedule';
 import SourceVaultModal from './components/SourceVaultModal';
-import KeySettingsModal from './components/KeySettingsModal';
 
 export type MainTab = 'briefing' | 'commitments' | 'schedule';
 
 function App() {
   const [activeTab, setActiveTab] = useState<MainTab>('briefing');
   const [sourceVaultOpen, setSourceVaultOpen] = useState(false);
-  const [keyModalOpen, setKeyModalOpen] = useState(false);
   const [initialChatPrompt, setInitialChatPrompt] = useState<string | undefined>(undefined);
 
   const handleAskAi = (prompt: string) => {
@@ -21,89 +19,82 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-0)] text-[var(--color-text-0)] flex flex-col font-sans">
+    <div className="min-h-screen w-full bg-[var(--color-surface-0)] text-[var(--color-text-0)] flex flex-col font-sans">
       {/* 1. Sleek Executive Top Navigation */}
-      <header className="sticky top-0 z-30 h-16 border-b border-[var(--color-border-primary)] bg-[var(--color-surface-1)]/90 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between">
-        {/* Left: Brand & Executive Identity */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[var(--color-brand)] via-purple-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-[var(--color-brand)]/20">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white tracking-tight">Veridian Agent</span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                <ShieldCheck className="w-3 h-3" /> Grounded
-              </span>
+      <header className="sticky top-0 z-30 w-full border-b border-[var(--color-border-primary)] bg-[var(--color-surface-1)]/90 backdrop-blur-md">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between">
+          {/* Left: Brand & Executive Identity */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[var(--color-brand)] via-purple-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-[var(--color-brand)]/20 shrink-0">
+              <Sparkles className="w-4.5 h-4.5" />
             </div>
-            <p className="text-[11px] text-[var(--color-text-3)] leading-none">
-              Arjun Malhotra • VP Sales
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white tracking-tight">Veridian Agent</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <ShieldCheck className="w-3 h-3" /> Grounded
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--color-text-3)] leading-none mt-0.5">
+                Arjun Malhotra • VP Sales
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Center: 3 Primary Workspaces (Clean Segmented Control) */}
-        <div className="hidden md:flex items-center p-1 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border-primary)]">
-          <button
-            onClick={() => setActiveTab('briefing')}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'briefing'
-                ? 'bg-[var(--color-brand)] text-white shadow-sm'
-                : 'text-[var(--color-text-2)] hover:text-white'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Daily Briefing & AI</span>
-          </button>
+          {/* Center: 3 Primary Workspaces (Clean Segmented Control) */}
+          <div className="hidden md:flex items-center p-1 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border-primary)]">
+            <button
+              onClick={() => setActiveTab('briefing')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'briefing'
+                  ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                  : 'text-[var(--color-text-2)] hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Daily Briefing & AI</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('commitments')}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'commitments'
-                ? 'bg-[var(--color-brand)] text-white shadow-sm'
-                : 'text-[var(--color-text-2)] hover:text-white'
-            }`}
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>Commitments</span>
-          </button>
+            <button
+              onClick={() => setActiveTab('commitments')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'commitments'
+                  ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                  : 'text-[var(--color-text-2)] hover:text-white'
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span>Commitments</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('schedule')}
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'schedule'
-                ? 'bg-[var(--color-brand)] text-white shadow-sm'
-                : 'text-[var(--color-text-2)] hover:text-white'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Schedule & Radar</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                activeTab === 'schedule'
+                  ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                  : 'text-[var(--color-text-2)] hover:text-white'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Schedule & Radar</span>
+            </button>
+          </div>
 
-        {/* Right: Source Vault & Key Settings */}
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setSourceVaultOpen(true)}
-            title="Inspect raw email trails, voice notes & sync transcripts"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-2)] hover:text-white border border-[var(--color-border-primary)] text-xs font-semibold transition-all"
-          >
-            <Database className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Source Vault</span>
-          </button>
+          {/* Right: Source Vault & Status */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSourceVaultOpen(true)}
+              title="Inspect raw email trails, voice notes & sync transcripts"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-text-1)] hover:text-white hover:border-[var(--color-border-active)] border border-[var(--color-border-primary)] text-xs font-semibold transition-all shadow-sm"
+            >
+              <Database className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Source Vault</span>
+            </button>
 
-          <button
-            onClick={() => setKeyModalOpen(true)}
-            title="Configure Gemini API Keys"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-surface-2)] text-[var(--color-brand-light)] hover:text-white border border-[var(--color-border-primary)] text-xs font-semibold transition-all"
-          >
-            <Key className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">AI Keys</span>
-          </button>
-
-          <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-3)] border border-[var(--color-border-primary)] hidden lg:inline-block">
-            Week 39 • Sep 2026
-          </span>
+            <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-3)] border border-[var(--color-border-primary)] hidden lg:inline-block">
+              Week 39 • Sep 2026
+            </span>
+          </div>
         </div>
       </header>
 
@@ -161,15 +152,10 @@ function App() {
         </AnimatePresence>
       </main>
 
-      {/* 3. On-Demand Modals */}
+      {/* 3. Source Vault Modal */}
       <SourceVaultModal
         isOpen={sourceVaultOpen}
         onClose={() => setSourceVaultOpen(false)}
-      />
-
-      <KeySettingsModal
-        isOpen={keyModalOpen}
-        onClose={() => setKeyModalOpen(false)}
       />
     </div>
   );

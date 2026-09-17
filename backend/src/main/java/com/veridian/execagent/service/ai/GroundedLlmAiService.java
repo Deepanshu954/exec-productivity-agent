@@ -14,18 +14,6 @@ public class GroundedLlmAiService implements AiService {
 
     private static final Logger log = LoggerFactory.getLogger(GroundedLlmAiService.class);
 
-    private static final List<String> DEFAULT_GEMINI_KEYS = List.of(
-        new String(Base64.getDecoder().decode("QVEuQWI4Uk42SjhZUXphRmZMUmFnM1JUeW1fS3FKMUhfTkFRUk1pamF4RzVoRHNJQTBXM0E=")),
-        new String(Base64.getDecoder().decode("QVEuQWI4Uk42S3lhbDZrYWVPU0JmUmk0RXZkN0xYMGhEOURkQkExNEJBd0E4Q1JDQ2o3MXc=")),
-        new String(Base64.getDecoder().decode("QVEuQWI4Uk42Sy03TWdOZ2EyeXpBZnBiaTBTNFZWNF9pdGNGMXlBMjlkY0xNMlFRUUc0aGc="))
-    );
-
-    private static final List<String> GEMINI_MODELS = List.of(
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-flash-8b"
-    );
-
     private final AiGroundingContextBuilder contextBuilder;
     private final GroundedFallbackAiService fallbackService;
     private final RestClient restClient;
@@ -46,62 +34,30 @@ public class GroundedLlmAiService implements AiService {
         this.restClient = RestClient.builder().build();
     }
 
-    private long lastExhaustedTime = 0;
-    private static final long COOLDOWN_MS = 60_000; // 1 minute cooldown on 429
-
     @Override
     public AiQueryResponse query(AiQueryRequest request) {
-        long now = System.currentTimeMillis();
-        if (now - lastExhaustedTime < COOLDOWN_MS) {
-            log.debug("In 429 cooldown window. Serving via Grounded Executive Reasoner directly.");
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.info("No external AI_API_KEY environment variable provided. Answering via Grounded Truth Engine.");
             AiQueryResponse resp = fallbackService.answer(request);
-            resp.setProvider("Grounded Executive Reasoner (Veridian Truth Engine)");
+            resp.setProvider("Grounded Executive Reasoner (Veridian Knowledge Base)");
             return resp;
-        }
-
-        List<String> keysToTry = new ArrayList<>();
-        if (apiKey != null && !apiKey.trim().isEmpty()) {
-            keysToTry.add(apiKey.trim());
-        }
-        for (String k : DEFAULT_GEMINI_KEYS) {
-            if (!keysToTry.contains(k)) {
-                keysToTry.add(k);
-            }
         }
 
         String systemPrompt = contextBuilder.buildGroundingSystemPrompt();
 
-        for (String key : keysToTry) {
-            boolean isGemini = key.startsWith("AIza") || key.startsWith("AQ.") || "gemini".equalsIgnoreCase(provider);
-
+        try {
+            boolean isGemini = apiKey.startsWith("AIza") || apiKey.startsWith("AQ.") || "gemini".equalsIgnoreCase(provider);
             if (isGemini) {
-                for (String model : GEMINI_MODELS) {
-                    try {
-                        log.info("Attempting Gemini API generation with model {} and key prefix {}", model, key.substring(0, Math.min(10, key.length())));
-                        return callGemini(request, systemPrompt, key, model);
-                    } catch (Exception e) {
-                        log.warn("Gemini call with model {} and key failed: {}", model, e.getMessage());
-                        if (e.getMessage() != null && e.getMessage().contains("429")) {
-                            // Key project has 0 quota or rate limit exceeded; don't waste time trying other models for this key
-                            break;
-                        }
-                    }
-                }
+                return callGemini(request, systemPrompt, apiKey.trim(), modelName);
             } else {
-                try {
-                    log.info("Attempting OpenAI call with key prefix {}", key.substring(0, Math.min(8, key.length())));
-                    return callOpenAi(request, systemPrompt, key);
-                } catch (Exception e) {
-                    log.warn("OpenAI call failed: {}", e.getMessage());
-                }
+                return callOpenAi(request, systemPrompt, apiKey.trim());
             }
+        } catch (Exception e) {
+            log.warn("External AI call failed ({}), falling back to Grounded Truth Engine", e.getMessage());
+            AiQueryResponse resp = fallbackService.answer(request);
+            resp.setProvider("Grounded Executive Reasoner (Fallback)");
+            return resp;
         }
-
-        lastExhaustedTime = System.currentTimeMillis();
-        log.info("All external LLM endpoints rate-limited or unavailable. Serving via Grounded Executive Reasoner.");
-        AiQueryResponse resp = fallbackService.answer(request);
-        resp.setProvider("Grounded Executive Reasoner (Veridian Truth Engine)");
-        return resp;
     }
 
     private AiQueryResponse callGemini(AiQueryRequest request, String systemPrompt, String key, String model) {
@@ -129,7 +85,7 @@ public class GroundedLlmAiService implements AiService {
                 .body(Map.class);
 
         String answerText = extractGeminiText(response);
-        if (answerText == null || answerText.isBlank() || answerText.startsWith("Unable to parse")) {
+        if (answerText == null || answerText.isBlank()) {
             throw new RuntimeException("Empty response from Gemini");
         }
 

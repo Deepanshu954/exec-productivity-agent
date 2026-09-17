@@ -141,7 +141,7 @@ export default function DailyBriefingChat({ initialQuery }: { initialQuery?: str
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="w-full space-y-6 max-w-5xl mx-auto">
       {/* 1. Day Selector Strip (Minimal & Clean) */}
       <div className="flex items-center justify-between gap-2 p-1.5 rounded-2xl bg-[var(--color-surface-1)] border border-[var(--color-border-primary)] shadow-sm">
         <div className="flex items-center gap-1.5 overflow-x-auto w-full">

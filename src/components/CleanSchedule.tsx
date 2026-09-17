@@ -20,7 +20,7 @@ export default function CleanSchedule({ onAskAi }: { onAskAi?: (prompt: string) 
   }, []);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="w-full space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border-primary)] pb-4">
         <div>
